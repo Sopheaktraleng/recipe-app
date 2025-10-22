@@ -1,0 +1,5 @@
+resources:
+  - backend-deployment.yaml
+  - backend-service.yaml
+  - backend-config.yaml
+  - backend-secret.yaml

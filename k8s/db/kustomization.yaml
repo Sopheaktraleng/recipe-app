@@ -1,0 +1,6 @@
+resources:
+  - mongodb-deployment.yaml
+  - mongodb-service.yaml
+  - mongodb-secret.yaml
+  - mongodb-configmap.yaml
+  # optional if you have configmap or secret
