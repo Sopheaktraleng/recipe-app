@@ -1,3 +1,4 @@
 resources:
   - frontend-deployment.yaml
   - frontend-service.yaml
+  - nginx-configmap.yaml
