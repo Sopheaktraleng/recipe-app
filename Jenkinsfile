@@ -14,27 +14,20 @@ pipeline {
         git branch: "main", url: "https://github.com/Sopheaktraleng/recipe-app.git"
       }
     }
-    stage('Build Docker Images') {
+    stage('Build and Push Docker Images') {
       steps {
         script {
-          frontendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE_TAG}", "./client")
-          backendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE_TAG}", "./server")
-        }
-      }
-    }
-    stage('Scan with Trivy') {
-      steps {
-        script {
+          // Build images
+          def frontendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE_TAG}", "./client")
+          def backendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE_TAG}", "./server")
+          
+          // Scan with Trivy
           sh "trivy image ${frontendImage.id}"
           sh "trivy image ${backendImage.id}"
           // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${frontendImage.id}"
           // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${backendImage.id}"
-        }
-      }
-    }
-    stage('Push Docker Images') {
-      steps {
-        script {
+          
+          // Push to Docker Hub
           docker.withRegistry("https://index.docker.io/v1/", "docker-hub-credentials") {
             frontendImage.push()
             frontendImage.push("latest")
@@ -47,24 +40,26 @@ pipeline {
     stage('Deploy to EC2') {
       steps {
         script {
-          sh '''
-          # Copy deployment files to EC2
-          scp -i $SSH_KEY_PATH -o StrictHostKeyChecking=no k8s/deployment.yaml $EC2_USER@$EC2_HOST:/tmp/
+          sh """
+          # Copy kustomization files to EC2
+          scp -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no -r k8s ${env.EC2_USER}@${env.EC2_HOST}:/tmp/
           
           # SSH into EC2 and deploy
-          ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-            # Pull the latest images
-            docker pull $DOCKER_HUB_REPO/$FRONTEND_IMAGE_TAG
-            docker pull $DOCKER_HUB_REPO/$BACKEND_IMAGE_TAG
+          ssh -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_HOST} << EOF
+            cd /tmp/k8s
             
-            # Apply Kubernetes deployments
-            kubectl apply -f /tmp/deployment.yaml
+            # Pull the latest images
+            docker pull ${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE_TAG}
+            docker pull ${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE_TAG}
+            
+            # Apply Kubernetes deployments with kustomize
+            kubectl apply -k .
             
             # Check deployment status
             kubectl get pods
             kubectl get services
           EOF
-          '''
+          """
         }
       }
     }
