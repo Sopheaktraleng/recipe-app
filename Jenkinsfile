@@ -14,23 +14,40 @@ pipeline {
         git branch: "main", url: "https://github.com/Sopheaktraleng/recipe-app.git"
       }
     }
-    stage('Build and Push Docker Images') {
+    stage('Build Docker Images') {
       steps {
         script {
-          // Build images
-          def frontendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE_TAG}", "./client")
-          def backendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE_TAG}", "./server")
-          
-          // Scan with Trivy
+          frontendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE_TAG}", "./client")
+          backendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE_TAG}", "./server")
+        }
+      }
+    }
+    stage('Scan with Trivy') {
+      steps {
+        script {
           sh "trivy image ${frontendImage.id}"
           sh "trivy image ${backendImage.id}"
           // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${frontendImage.id}"
           // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${backendImage.id}"
-          
-          // Push to Docker Hub
+        }
+      }
+    }
+    stage('Push to Docker Hub') {
+      steps {
+        script {
+          // Login and push frontend image
           docker.withRegistry("https://index.docker.io/v1/", "docker-hub-credentials") {
             frontendImage.push()
             frontendImage.push("latest")
+          }
+        }
+      }
+    }
+    stage('Push Backend Image') {
+      steps {
+        script {
+          // Login and push backend image
+          docker.withRegistry("https://index.docker.io/v1/", "docker-hub-credentials") {
             backendImage.push()
             backendImage.push("latest")
           }
@@ -45,7 +62,7 @@ pipeline {
           scp -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no -r k8s ${env.EC2_USER}@${env.EC2_HOST}:/tmp/
           
           # SSH into EC2 and deploy
-          ssh -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_HOST} << EOF
+          ssh -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_HOST} << 'EOF'
             cd /tmp/k8s
             
             # Pull the latest images
