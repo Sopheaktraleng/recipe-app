@@ -66,22 +66,55 @@ pipeline {
     stage('Deploy to Kubernetes') {
       steps {
         script {
-            withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             sh """
+              set -euxo pipefail
+
+              # Ship manifests
               scp -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no -r k8s ${env.EC2_USER}@${env.EC2_HOST}:/tmp/
 
-              ssh -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_HOST} \\
-                "export DOCKER_USER='$DOCKER_USER' && export DOCKER_PASS='$DOCKER_PASS' && \\
-                cd /tmp/k8s && \\
-                kubectl create secret docker-registry docker-hub-secret --docker-server=https://index.docker.io/v1/ --docker-username=\\\$DOCKER_USER --docker-password=\\\$DOCKER_PASS --dry-run=client -o yaml | kubectl apply -f - && \\
-                kubectl apply -k . && \\
-                kubectl get pods && \\
-                kubectl get services"
+              # Run everything on the remote host
+              ssh -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_HOST} 'bash -seu <<EOF
+                set -euxo pipefail
+
+                NS=\${K8S_NAMESPACE:-default}   # optionally export K8S_NAMESPACE in Jenkins
+
+                cd /tmp/k8s
+
+                # Verify kubectl & context
+                kubectl version --client
+                kubectl cluster-info
+                kubectl get ns \${NS} >/dev/null 2>&1 || kubectl create ns \${NS}
+
+                # Create/Update image pull secret in the right namespace
+                kubectl create secret docker-registry docker-hub-secret \\
+                  --namespace=\${NS} \\
+                  --docker-server=https://index.docker.io/v1/ \\
+                  --docker-username="${DOCKER_USER}" \\
+                  --docker-password="${DOCKER_PASS}" \\
+                  --dry-run=client -o yaml | kubectl apply -f -
+
+                # If using Kustomize, ensure it targets the namespace; otherwise apply -f
+                if [ -f kustomization.yaml ]; then
+                  # Force namespace at apply time if kustomization lacks it
+                  kubectl apply -k . -n \${NS}
+                else
+                  kubectl apply -f . -n \${NS}
+                fi
+
+                # Basic post-deploy checks
+                kubectl get pods -n \${NS}
+                kubectl get svc -n \${NS}
+
+                # If something is pending, dump recent events for quick triage
+                kubectl get events -n \${NS} --sort-by=.lastTimestamp | tail -n 50 || true
+              EOF'
             """
           }
         }
       }
-    }
+   }
+
 
     // Option 2: ArgoCD deployment (enable after setting up ArgoCD)
     // See: ARGOCD_SETUP.md for installation instructions
