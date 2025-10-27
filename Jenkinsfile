@@ -2,8 +2,8 @@ pipeline {
   agent any
   environment {
     DOCKER_HUB_REPO = "sopheaktraleng"
-    FRONTEND_IMAGE_TAG = "mern-recipe-app-frontend:${env.BUILD_ID}"
-    BACKEND_IMAGE_TAG = "mern-recipe-app-backend:${env.BUILD_ID}"
+    FRONTEND_IMAGE = "mern-recipe-app-frontend"
+    BACKEND_IMAGE = "mern-recipe-app-backend"
     EC2_HOST = "18.140.51.105"
     EC2_USER = "ec2-user"
     SSH_KEY_PATH = "/var/lib/jenkins/.ssh/your-ec2-key.pem"
@@ -17,9 +17,13 @@ pipeline {
     stage('Build and Push Docker Images') {
       steps {
         script {
+          // Define image names
+          def frontendImageName = "${env.DOCKER_HUB_REPO}/mern-recipe-app-frontend"
+          def backendImageName = "${env.DOCKER_HUB_REPO}/mern-recipe-app-backend"
+          
           // Build images
-          def frontendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE_TAG}", "./client")
-          def backendImage = docker.build("${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE_TAG}", "./server")
+          def frontendImage = docker.build("${frontendImageName}:${env.BUILD_ID}", "./client")
+          def backendImage = docker.build("${backendImageName}:${env.BUILD_ID}", "./server")
           
           // Scan with Trivy
           sh "trivy image ${frontendImage.id}"
@@ -29,13 +33,17 @@ pipeline {
           
           // Login and push to Docker Hub
           docker.withRegistry("https://index.docker.io/v1/", "docker-hub") {
-            // Push frontend with build number and latest tags
-            frontendImage.push()
-            frontendImage.push("latest")
+            // Push frontend with build ID tag
+            sh "docker push ${frontendImageName}:${env.BUILD_ID}"
+            // Tag and push latest
+            sh "docker tag ${frontendImageName}:${env.BUILD_ID} ${frontendImageName}:latest"
+            sh "docker push ${frontendImageName}:latest"
             
-            // Push backend with build number and latest tags
-            backendImage.push()
-            backendImage.push("latest")
+            // Push backend with build ID tag
+            sh "docker push ${backendImageName}:${env.BUILD_ID}"
+            // Tag and push latest
+            sh "docker tag ${backendImageName}:${env.BUILD_ID} ${backendImageName}:latest"
+            sh "docker push ${backendImageName}:latest"
           }
         }
       }
@@ -52,8 +60,8 @@ pipeline {
             cd /tmp/k8s
             
             # Pull the latest images
-            docker pull ${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE_TAG}
-            docker pull ${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE_TAG}
+            docker pull ${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE}:latest
+            docker pull ${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE}:latest
             
             # Apply Kubernetes deployments with kustomize
             kubectl apply -k .

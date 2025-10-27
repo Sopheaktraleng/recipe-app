@@ -30,7 +30,7 @@
 5. Configure:
     - **Username**: `sopheaktraleng`
     - **Password**: [Your Docker Hub Personal Access Token]
-    - **ID**: `docker-hub-credentials`
+    - **ID**: `docker-hub`
     - **Description**: `Docker Hub credentials for recipe app`
 6. Click **"OK"**
 
@@ -86,9 +86,9 @@ If deploying to EC2:
 
 ## 7. Troubleshooting
 
-### Issue: "docker-hub-credentials" not found
+### Issue: "docker-hub" not found
 
--   Solution: Make sure the credential ID is exactly `docker-hub-credentials`
+-   Solution: Make sure the credential ID is exactly `docker-hub`
 -   Check in: Jenkins → Credentials → Global
 
 ### Issue: 504 Gateway Timeout
