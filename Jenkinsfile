@@ -28,7 +28,7 @@ pipeline {
           // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${backendImage.id}"
           
           // Login and push to Docker Hub
-          docker.withRegistry("https://index.docker.io/v1/", "docker-hub-credentials") {
+          docker.withRegistry("https://index.docker.io/v1/", "docker-hub") {
             // Push frontend with build number and latest tags
             frontendImage.push()
             frontendImage.push("latest")
