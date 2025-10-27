@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: recipe-app
+    namespace: argocd
+    finalizers:
+        - resources-finalizer.argocd.argoproj.io
+spec:
+    project: default
+    source:
+        repoURL: https://github.com/Sopheaktraleng/recipe-app.git
+        targetRevision: main
+        path: k8s
+        kustomize:
+            images:
+                - name: sopheaktraleng/recipe-app-frontend
+                  newTag: latest
+                - name: sopheaktraleng/recipe-app-backend
+                  newTag: latest
+    destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+    syncPolicy:
+        automated:
+            prune: true
+            selfHeal: true
+        syncOptions:
+            - CreateNamespace=true
+        retry:
+            limit: 5
+            backoff:
+                duration: 5s
+                factor: 2
+                maxDuration: 3m

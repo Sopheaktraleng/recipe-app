@@ -62,6 +62,7 @@ pipeline {
       }
     }
 
+    // Option 1: Traditional SSH-based deployment (currently active)
     stage('Deploy to EC2') {
       steps {
         script {
@@ -83,5 +84,16 @@ pipeline {
         }
       }
     }
+
+    // Option 2: ArgoCD deployment (enable after setting up ArgoCD)
+    // See: ARGOCD_SETUP.md for installation instructions
+    // 
+    // stage('Deploy with ArgoCD') {
+    //   steps {
+    //     sh "echo 'ArgoCD will automatically sync from Git!'"
+    //     // ArgoCD watches the Git repo and auto-deploys
+    //     // No manual steps needed - it's automatic!
+    //   }
+    // }
   }
 }
