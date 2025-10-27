@@ -15,25 +15,29 @@ pipeline {
       }
     }
 
-    stage('Code Quality Analysis') {
-      steps {
-        script {
-          withSonarQubeEnv('SonarQube Server') {
-            sh "sonar-scanner"
-          }
-        }
-      }
-    }
+    // SonarQube stages - Enable after installing sonar-scanner CLI
+    // To install: SSH into Jenkins server and run: sudo ./install-sonar-scanner.sh
+    // See: install-sonar-scanner.sh for details
+    
+    // stage('Code Quality Analysis') {
+    //   steps {
+    //     script {
+    //       withSonarQubeEnv('SonarQube Server') {
+    //         sh "sonar-scanner"
+    //       }
+    //     }
+    //   }
+    // }
 
-    stage('Quality Gate Check') {
-      steps {
-        script {
-          timeout(time: 5, unit: 'MINUTES') {
-            waitForQualityGate abortPipeline: false
-          }
-        }
-      }
-    }
+    // stage('Quality Gate Check') {
+    //   steps {
+    //     script {
+    //       timeout(time: 5, unit: 'MINUTES') {
+    //         waitForQualityGate abortPipeline: false
+    //       }
+    //     }
+    //   }
+    // }
 
     stage('Build and Push Docker Images') {
       steps {
