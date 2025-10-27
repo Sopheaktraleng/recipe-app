@@ -15,26 +15,25 @@ pipeline {
       }
     }
 
-    // SonarQube temporarily disabled - enable after configuration
-    // stage('Code Quality Analysis') {
-    //   steps {
-    //     script {
-    //       withSonarQubeEnv('SonarQube Server') {
-    //         sh "sonar-scanner"
-    //       }
-    //     }
-    //   }
-    // }
+    stage('Code Quality Analysis') {
+      steps {
+        script {
+          withSonarQubeEnv('SonarQube Server') {
+            sh "sonar-scanner"
+          }
+        }
+      }
+    }
 
-    // stage('Quality Gate Check') {
-    //   steps {
-    //     script {
-    //       timeout(time: 5, unit: 'MINUTES') {
-    //         waitForQualityGate abortPipeline: true
-    //       }
-    //     }
-    //   }
-    // }
+    stage('Quality Gate Check') {
+      steps {
+        script {
+          timeout(time: 5, unit: 'MINUTES') {
+            waitForQualityGate abortPipeline: false
+          }
+        }
+      }
+    }
 
     stage('Build and Push Docker Images') {
       steps {
