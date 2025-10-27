@@ -4,9 +4,9 @@ pipeline {
     DOCKER_HUB_REPO = "sopheaktraleng"
     FRONTEND_IMAGE = "recipe-app-frontend"
     BACKEND_IMAGE  = "recipe-app-backend"
-    EC2_HOST       = "18.140.51.105"
+    EC2_HOST       = "54.254.75.157"
     EC2_USER       = "ec2-user"
-    SSH_KEY_PATH   = "/var/lib/jenkins/.ssh/your-ec2-key.pem"
+    SSH_KEY_PATH   = "/var/lib/jenkins/.ssh/k8s-master-key.pem"  # Update this with your actual key name
   }
   stages {
     stage('Checkout') {
