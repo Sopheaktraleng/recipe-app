@@ -4,6 +4,6 @@ metadata:
   name: backend-config
 data:
   PORT: "5000"
-  DATABASE: "mongodb://admin:<PASSWORD>@mongodb-service:27017/recipe-app?authSource=admin"
+  DATABASE: "mongodb://admin:password123@mongodb-service:27017/recipe-app?authSource=admin"
   JWT_EXPIRES_IN: "3d"
   NODE_ENV: "development"

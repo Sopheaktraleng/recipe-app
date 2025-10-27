@@ -12,11 +12,10 @@ spec:
             labels:
                 app: frontend
         spec:
-            imagePullSecrets:
-                - name: docker-hub-secret
             containers:
                 - name: frontend
-                  image: sopheaktraleng/recipe-app-frontend:latest
+                  image: recipe-app-frontend:latest
+                  imagePullPolicy: Never
                   ports:
                       - containerPort: 80
                   volumeMounts:

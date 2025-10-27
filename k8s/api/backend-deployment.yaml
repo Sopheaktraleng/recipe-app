@@ -12,11 +12,10 @@ spec:
             labels:
                 app: backend
         spec:
-            imagePullSecrets:
-                - name: docker-hub-secret
             containers:
                 - name: backend
-                  image: sopheaktraleng/recipe-app-backend:latest
+                  image: recipe-app-backend:latest
+                  imagePullPolicy: Never
                   ports:
                       - containerPort: 5000
                   envFrom:

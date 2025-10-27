@@ -10,7 +10,7 @@ const Navbar = () => {
         <div className="bg-blue-500 p-4">
             <div className="container mx-auto max-w-5xl flex justify-between items-center">
                 <Link to="/home" className="text-white text-lg font-semibold">
-                    Home
+                    Home11
                 </Link>
                 <div className="space-x-4">
                     <Link to="/create-recipe" className="text-white">
