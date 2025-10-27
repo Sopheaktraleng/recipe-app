@@ -7,8 +7,6 @@ pipeline {
     EC2_HOST       = "18.140.51.105"
     EC2_USER       = "ec2-user"
     SSH_KEY_PATH   = "/var/lib/jenkins/.ssh/your-ec2-key.pem"
-    // Optional: if you want to force scanner path; otherwise leave it to PATH
-    // SCANNER_HOME = tool 'SonarQubeScanner'
   }
   stages {
     stage('Checkout') {
@@ -17,36 +15,26 @@ pipeline {
       }
     }
 
-    stage('Code Quality Analysis') {
-      steps {
-        script {
-          // Use the SonarQube server config (injects SONAR_HOST_URL, etc.)
-          withSonarQubeEnv('SonarQube Server') {
-            // Inject your SonarQube token from Jenkins Credentials
-            withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-              // If you defined SCANNER_HOME above, prepend it: "${SCANNER_HOME}/bin/sonar-scanner"
-              sh """
-                export SONAR_TOKEN="\$SONAR_TOKEN"
-                sonar-scanner \
-                  -Dsonar.host.url=\$SONAR_HOST_URL
-              """
-              // Note: Put project metadata in sonar-project.properties in your repo
-              // (sonar.projectKey, sonar.projectName, sonar.sources, etc.)
-            }
-          }
-        }
-      }
-    }
+    // SonarQube temporarily disabled - enable after configuration
+    // stage('Code Quality Analysis') {
+    //   steps {
+    //     script {
+    //       withSonarQubeEnv('SonarQube Server') {
+    //         sh "sonar-scanner"
+    //       }
+    //     }
+    //   }
+    // }
 
-    stage('Quality Gate Check') {
-      steps {
-        script {
-          timeout(time: 5, unit: 'MINUTES') {
-            waitForQualityGate abortPipeline: true
-          }
-        }
-      }
-    }
+    // stage('Quality Gate Check') {
+    //   steps {
+    //     script {
+    //       timeout(time: 5, unit: 'MINUTES') {
+    //         waitForQualityGate abortPipeline: true
+    //       }
+    //     }
+    //   }
+    // }
 
     stage('Build and Push Docker Images') {
       steps {
