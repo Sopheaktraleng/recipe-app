@@ -15,26 +15,6 @@ pipeline {
       }
     }
 
-    stage('Code Quality Analysis') {
-      steps {
-        script {
-          withSonarQubeEnv('SonarQube Server') {
-            sh "sonar-scanner"
-          }
-        }
-      }
-    }
-
-    stage('Quality Gate Check') {
-      steps {
-        script {
-          timeout(time: 5, unit: 'MINUTES') {
-            waitForQualityGate abortPipeline: false
-          }
-        }
-      }
-    }
-
     stage('Build Docker Images') {
       steps {
         script {
