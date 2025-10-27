@@ -63,24 +63,22 @@ pipeline {
     }
 
     // Option 1: Traditional SSH-based deployment (currently active)
-    stage('Deploy to EC2') {
+    stage('Deploy to Kubernetes') {
       steps {
         script {
-          sh """
-            scp -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no -r k8s ${env.EC2_USER}@${env.EC2_HOST}:/tmp/
+            withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh """
+              scp -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no -r k8s ${env.EC2_USER}@${env.EC2_HOST}:/tmp/
 
-            ssh -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_HOST} << 'EOF'
-              cd /tmp/k8s
-
-              docker pull ${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE}:latest
-              docker pull ${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE}:latest
-
-              kubectl apply -k .
-
-              kubectl get pods
-              kubectl get services
-            EOF
-          """
+              ssh -i ${env.SSH_KEY_PATH} -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_HOST} \\
+                "export DOCKER_USER='$DOCKER_USER' && export DOCKER_PASS='$DOCKER_PASS' && \\
+                cd /tmp/k8s && \\
+                kubectl create secret docker-registry docker-hub-secret --docker-server=https://index.docker.io/v1/ --docker-username=\\\$DOCKER_USER --docker-password=\\\$DOCKER_PASS --dry-run=client -o yaml | kubectl apply -f - && \\
+                kubectl apply -k . && \\
+                kubectl get pods && \\
+                kubectl get services"
+            """
+          }
         }
       }
     }
