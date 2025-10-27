@@ -21,7 +21,18 @@
 -   Script Path: `Jenkinsfile`
 -   Click "Save"
 
-## 3. Set Up Docker Hub Credentials
+## 3. Create Docker Hub Repositories
+
+**IMPORTANT: Create these repositories on Docker Hub BEFORE running the pipeline:**
+
+1. Go to https://hub.docker.com/repositories
+2. Click **"Create Repository"**
+3. Create two repositories:
+    - Name: `recipe-app-frontend` (Public or Private)
+    - Name: `recipe-app-backend` (Public or Private)
+4. Click **"Create"** for each
+
+## 4. Set Up Docker Hub Credentials
 
 1. Go to Jenkins → **Manage Jenkins** → **Manage Credentials**
 2. Click **"Global"** (or create a folder for your project)
@@ -43,7 +54,7 @@
 5. Copy the token (you won't see it again!)
 6. Use this token as the password in step 5 above
 
-## 4. Verify Required Plugins
+## 5. Verify Required Plugins
 
 Make sure these Jenkins plugins are installed:
 
@@ -59,7 +70,7 @@ To install/verify:
 3. Search for each plugin above
 4. If missing, go to **"Available"** tab, search and install
 
-## 5. Configure SSH Key (for EC2 deployment)
+## 6. Configure SSH Key (for EC2 deployment)
 
 If deploying to EC2:
 
@@ -74,7 +85,7 @@ If deploying to EC2:
     sudo chown jenkins:jenkins /var/lib/jenkins/.ssh/your-ec2-key.pem
     ```
 
-## 6. Build the Pipeline
+## 7. Build the Pipeline
 
 1. Go to your Jenkins job
 2. Click **"Build Now"**
@@ -84,7 +95,7 @@ If deploying to EC2:
     - ✓ Build and Push Docker Images
     - ✓ Deploy to EC2
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 ### Issue: "docker-hub" not found
 
@@ -97,9 +108,45 @@ If deploying to EC2:
 
 ### Issue: Push to Docker Hub fails
 
--   Check if your Docker Hub username is correct
--   Verify the Personal Access Token is valid
--   Make sure you have permission to push to the repository
+**Common causes and solutions:**
+
+1. **Repositories don't exist on Docker Hub**
+
+    - Go to https://hub.docker.com
+    - Create repositories: `mern-recipe-app-frontend` and `mern-recipe-app-backend`
+    - Set them to Public or Private (match your Jenkins credentials permissions)
+
+2. **Incorrect credentials format**
+
+    - Verify credential ID is exactly `docker-hub`
+    - Username should be: `sopheaktraleng`
+    - Password should be your Docker Hub Personal Access Token (NOT your Docker Hub password)
+    - Token must have `Read, Write & Delete` permissions
+
+3. **Error: "repository does not exist"**
+
+    - Create the repositories on Docker Hub first
+    - Repositories must exist before you can push to them
+
+4. **Error: "authentication required" or "unauthorized"**
+
+    - Regenerate your Personal Access Token
+    - Update the credential in Jenkins with the new token
+    - Make sure the username in Jenkins matches your Docker Hub username
+
+5. **Error: "denied: requested access to the resource is denied"**
+    - Check that you have permission to push to those repositories
+    - Verify the username is correct
+    - Ensure the Personal Access Token has write permissions
+
+**To verify credentials locally (from Jenkins server):**
+
+```bash
+# SSH into Jenkins server
+docker login -u sopheaktraleng
+# Enter your Personal Access Token as password
+docker push sopheaktraleng/mern-recipe-app-frontend:test
+```
 
 ### Issue: Cannot connect to Docker daemon
 
@@ -107,7 +154,7 @@ If deploying to EC2:
 -   Jenkins user needs to be in docker group: `sudo usermod -aG docker jenkins`
 -   Restart Jenkins after adding user to docker group
 
-## 8. Testing the Docker Images Locally
+## 9. Testing the Docker Images Locally
 
 After successful build, test locally:
 

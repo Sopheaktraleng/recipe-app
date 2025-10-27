@@ -2,8 +2,8 @@ pipeline {
   agent any
   environment {
     DOCKER_HUB_REPO = "sopheaktraleng"
-    FRONTEND_IMAGE = "mern-recipe-app-frontend"
-    BACKEND_IMAGE = "mern-recipe-app-backend"
+    FRONTEND_IMAGE = "recipe-app-frontend"
+    BACKEND_IMAGE = "recipe-app-backend"
     EC2_HOST = "18.140.51.105"
     EC2_USER = "ec2-user"
     SSH_KEY_PATH = "/var/lib/jenkins/.ssh/your-ec2-key.pem"
@@ -18,8 +18,8 @@ pipeline {
       steps {
         script {
           // Define image names
-          def frontendImageName = "${env.DOCKER_HUB_REPO}/mern-recipe-app-frontend"
-          def backendImageName = "${env.DOCKER_HUB_REPO}/mern-recipe-app-backend"
+          def frontendImageName = "${env.DOCKER_HUB_REPO}/recipe-app-frontend"
+          def backendImageName = "${env.DOCKER_HUB_REPO}/recipe-app-backend"
           
           // Build images
           def frontendImage = docker.build("${frontendImageName}:${env.BUILD_ID}", "./client")
@@ -31,20 +31,19 @@ pipeline {
           // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${frontendImage.id}"
           // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${backendImage.id}"
           
-          // Get Docker Hub credentials
-          withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          // Get and use Docker Hub credentials
+          withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             // Login to Docker Hub
-            sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+            sh "echo '$DOCKER_PASS' | docker login -u '$DOCKER_USER' --password-stdin"
             
-            // Push frontend with build ID tag
+            // Push images with build ID tag
             sh "docker push ${frontendImageName}:${env.BUILD_ID}"
+            sh "docker push ${backendImageName}:${env.BUILD_ID}"
+            
             // Tag and push latest
             sh "docker tag ${frontendImageName}:${env.BUILD_ID} ${frontendImageName}:latest"
             sh "docker push ${frontendImageName}:latest"
             
-            // Push backend with build ID tag
-            sh "docker push ${backendImageName}:${env.BUILD_ID}"
-            // Tag and push latest
             sh "docker tag ${backendImageName}:${env.BUILD_ID} ${backendImageName}:latest"
             sh "docker push ${backendImageName}:latest"
           }
