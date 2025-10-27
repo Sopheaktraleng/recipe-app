@@ -4,9 +4,9 @@ pipeline {
     DOCKER_HUB_REPO = "sopheaktraleng"
     FRONTEND_IMAGE = "recipe-app-frontend"
     BACKEND_IMAGE  = "recipe-app-backend"
-    EC2_HOST       = "54.254.75.157"
+    EC2_HOST       = "18.141.179.231"
     EC2_USER       = "ec2-user"
-    SSH_KEY_PATH   = "/var/lib/jenkins/.ssh/k8s-master-key.pem"  # Update this with your actual key name
+    SSH_KEY_PATH   = "/var/lib/jenkins/.ssh/id_rsa"  # SSH key for Jenkins to connect to K8s master
   }
   stages {
     stage('Checkout') {
