@@ -32,7 +32,67 @@
     - Name: `recipe-app-backend` (Public or Private)
 4. Click **"Create"** for each
 
-## 4. Set Up Docker Hub Credentials
+## 4. Configure SonarQube
+
+Since you already have SonarQube running via Docker, let's configure it for Jenkins.
+
+### Start SonarQube (if not already running):
+
+```bash
+docker run -d --name sonarqube \
+  -p 9000:9000 \
+  -e sonar.jdbc.url=jdbc:postgresql://postgres/sonar \
+  sonarqube:latest
+```
+
+Or if you're using docker-compose:
+
+```bash
+docker-compose up -d sonarqube
+```
+
+### Access SonarQube:
+
+1. Open browser and go to: `http://localhost:9000` (or your server IP)
+2. Default credentials:
+    - Username: `admin`
+    - Password: `admin` (you'll be prompted to change it)
+
+### Generate SonarQube Token:
+
+1. Once logged in, click on your user icon (top right) → **"My Account"**
+2. Go to **"Security"** tab
+3. In **"Generate Tokens"** section:
+    - Enter a name: `jenkins-recipe-app`
+    - Click **"Generate"**
+    - **Copy the token immediately** (you won't see it again!)
+4. Save this token for Jenkins configuration
+
+### Configure SonarQube in Jenkins:
+
+1. Go to **Jenkins → Manage Jenkins → Configure System**
+2. Scroll down to **"SonarQube servers"** section
+3. Click **"Add SonarQube"**
+4. Configure:
+    - **Name**: `SonarQube Server`
+    - **Server URL**: `http://localhost:9000` (or your SonarQube URL)
+    - **Server authentication token**: Click "Add" → Select "Secret text"
+        - Secret: [Paste your SonarQube token here]
+        - ID: `sonarqube-token`
+        - Description: `SonarQube authentication token`
+        - Click "Add"
+    - Select the credential you just created
+5. Click **"Apply"** and **"Save"**
+
+### Install SonarQube Plugin (if not already installed):
+
+1. Go to **Jenkins → Manage Jenkins → Manage Plugins**
+2. Click **"Available"** tab
+3. Search for **"SonarQube Scanner"**
+4. Check the box and click **"Install without restart"** or **"Download now and install after restart"**
+5. Wait for installation to complete
+
+## 5. Set Up Docker Hub Credentials
 
 1. Go to Jenkins → **Manage Jenkins** → **Manage Credentials**
 2. Click **"Global"** (or create a folder for your project)
@@ -54,7 +114,7 @@
 5. Copy the token (you won't see it again!)
 6. Use this token as the password in step 5 above
 
-## 5. Verify Required Plugins
+## 6. Verify Required Plugins
 
 Make sure these Jenkins plugins are installed:
 
@@ -62,6 +122,7 @@ Make sure these Jenkins plugins are installed:
 -   Docker Plugin
 -   SSH Agent Plugin
 -   Trivy Scanner Plugin
+-   SonarQube Scanner Plugin
 
 To install/verify:
 
@@ -70,7 +131,7 @@ To install/verify:
 3. Search for each plugin above
 4. If missing, go to **"Available"** tab, search and install
 
-## 6. Configure SSH Key (for EC2 deployment)
+## 7. Configure SSH Key (for EC2 deployment)
 
 If deploying to EC2:
 
@@ -85,7 +146,7 @@ If deploying to EC2:
     sudo chown jenkins:jenkins /var/lib/jenkins/.ssh/your-ec2-key.pem
     ```
 
-## 7. Build the Pipeline
+## 8. Build the Pipeline
 
 1. Go to your Jenkins job
 2. Click **"Build Now"**
@@ -95,7 +156,7 @@ If deploying to EC2:
     - ✓ Build and Push Docker Images
     - ✓ Deploy to EC2
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 ### Issue: "dockerhub" not found
 
@@ -148,13 +209,47 @@ docker login -u sopheaktraleng
 docker push sopheaktraleng/recipe-app-frontend:test
 ```
 
+### Issue: SonarQube Analysis fails
+
+**Common causes and solutions:**
+
+1. **sonar-scanner not found**
+
+    - Install SonarQube Scanner on Jenkins server:
+        ```bash
+        # Download and install sonar-scanner
+        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+        unzip sonar-scanner-cli-4.8.0.2856-linux.zip
+        sudo mv sonar-scanner-4.8.0.2856-linux /opt/sonar-scanner
+        echo 'export PATH=$PATH:/opt/sonar-scanner/bin' >> ~/.bashrc
+        source ~/.bashrc
+        ```
+
+2. **SonarQube Server connection fails**
+
+    - Check SonarQube is running: `docker ps | grep sonarqube`
+    - Verify SonarQube URL is correct in Jenkins configuration
+    - Check if Jenkins can reach SonarQube server
+    - Test connection: `curl http://localhost:9000`
+
+3. **Authentication failed**
+
+    - Regenerate SonarQube token
+    - Update credential in Jenkins with new token
+    - Verify credential ID is `sonarqube-token`
+
+4. **Quality Gate failed**
+    - Check SonarQube dashboard for specific issues
+    - Adjust quality gate thresholds if needed
+    - Or temporarily set `abortPipeline: false` to allow build to continue
+
 ### Issue: Cannot connect to Docker daemon
 
 -   Ensure Jenkins has Docker installed
 -   Jenkins user needs to be in docker group: `sudo usermod -aG docker jenkins`
 -   Restart Jenkins after adding user to docker group
 
-## 9. Testing the Docker Images Locally
+## 10. Testing the Docker Images Locally
 
 After successful build, test locally:
 

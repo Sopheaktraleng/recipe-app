@@ -14,6 +14,24 @@ pipeline {
         git branch: "main", url: "https://github.com/Sopheaktraleng/recipe-app.git"
       }
     }
+    stage('Code Quality Analysis') {
+      steps {
+        script {
+          withSonarQubeEnv('SonarQube Server') {
+            sh "sonar-scanner"
+          }
+        }
+      }
+    }
+    stage('Quality Gate Check') {
+      steps {
+        script {
+          timeout(time: 5, unit: 'MINUTES') {
+            waitForQualityGate abortPipeline: true
+          }
+        }
+      }
+    }
     stage('Build and Push Docker Images') {
       steps {
         script {
