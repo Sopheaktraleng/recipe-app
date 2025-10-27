@@ -15,31 +15,27 @@ pipeline {
       }
     }
 
-    // SonarQube stages - Enable after installing sonar-scanner CLI
-    // To install: SSH into Jenkins server and run: sudo ./install-sonar-scanner.sh
-    // See: install-sonar-scanner.sh for details
-    
-    // stage('Code Quality Analysis') {
-    //   steps {
-    //     script {
-    //       withSonarQubeEnv('SonarQube Server') {
-    //         sh "sonar-scanner"
-    //       }
-    //     }
-    //   }
-    // }
+    stage('Code Quality Analysis') {
+      steps {
+        script {
+          withSonarQubeEnv('SonarQube Server') {
+            sh "sonar-scanner"
+          }
+        }
+      }
+    }
 
-    // stage('Quality Gate Check') {
-    //   steps {
-    //     script {
-    //       timeout(time: 5, unit: 'MINUTES') {
-    //         waitForQualityGate abortPipeline: false
-    //       }
-    //     }
-    //   }
-    // }
+    stage('Quality Gate Check') {
+      steps {
+        script {
+          timeout(time: 5, unit: 'MINUTES') {
+            waitForQualityGate abortPipeline: false
+          }
+        }
+      }
+    }
 
-    stage('Build and Push Docker Images') {
+    stage('Build Docker Images') {
       steps {
         script {
           def frontendImageName = "${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE}"
@@ -47,9 +43,27 @@ pipeline {
 
           def frontendImage = docker.build("${frontendImageName}:${env.BUILD_ID}", "./client")
           def backendImage  = docker.build("${backendImageName}:${env.BUILD_ID}", "./server")
+        }
+      }
+    }
 
-          sh "trivy image ${frontendImage.id}"
-          sh "trivy image ${backendImage.id}"
+    stage('Security Scan with Trivy') {
+      steps {
+        script {
+          def frontendImageName = "${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE}"
+          def backendImageName  = "${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE}"
+          
+          sh "trivy image ${frontendImageName}:${env.BUILD_ID}"
+          sh "trivy image ${backendImageName}:${env.BUILD_ID}"
+        }
+      }
+    }
+
+    stage('Push to Docker Hub') {
+      steps {
+        script {
+          def frontendImageName = "${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE}"
+          def backendImageName  = "${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE}"
 
           withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             sh "echo '$DOCKER_PASS' | docker login -u '$DOCKER_USER' --password-stdin"
