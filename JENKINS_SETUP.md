@@ -41,7 +41,7 @@
 5. Configure:
     - **Username**: `sopheaktraleng`
     - **Password**: [Your Docker Hub Personal Access Token]
-    - **ID**: `docker-hub`
+    - **ID**: `dockerhub`
     - **Description**: `Docker Hub credentials for recipe app`
 6. Click **"OK"**
 
@@ -97,9 +97,9 @@ If deploying to EC2:
 
 ## 8. Troubleshooting
 
-### Issue: "docker-hub" not found
+### Issue: "dockerhub" not found
 
--   Solution: Make sure the credential ID is exactly `docker-hub`
+-   Solution: Make sure the credential ID is exactly `dockerhub`
 -   Check in: Jenkins → Credentials → Global
 
 ### Issue: 504 Gateway Timeout
@@ -113,12 +113,12 @@ If deploying to EC2:
 1. **Repositories don't exist on Docker Hub**
 
     - Go to https://hub.docker.com
-    - Create repositories: `mern-recipe-app-frontend` and `mern-recipe-app-backend`
+    - Create repositories: `recipe-app-frontend` and `recipe-app-backend`
     - Set them to Public or Private (match your Jenkins credentials permissions)
 
 2. **Incorrect credentials format**
 
-    - Verify credential ID is exactly `docker-hub`
+    - Verify credential ID is exactly `dockerhub`
     - Username should be: `sopheaktraleng`
     - Password should be your Docker Hub Personal Access Token (NOT your Docker Hub password)
     - Token must have `Read, Write & Delete` permissions
@@ -145,7 +145,7 @@ If deploying to EC2:
 # SSH into Jenkins server
 docker login -u sopheaktraleng
 # Enter your Personal Access Token as password
-docker push sopheaktraleng/mern-recipe-app-frontend:test
+docker push sopheaktraleng/recipe-app-frontend:test
 ```
 
 ### Issue: Cannot connect to Docker daemon
@@ -159,8 +159,8 @@ docker push sopheaktraleng/mern-recipe-app-frontend:test
 After successful build, test locally:
 
 ```bash
-docker pull sopheaktraleng/mern-recipe-app-frontend:latest
-docker pull sopheaktraleng/mern-recipe-app-backend:latest
+docker pull sopheaktraleng/recipe-app-frontend:latest
+docker pull sopheaktraleng/recipe-app-backend:latest
 ```
 
 ## Environment Variables in Jenkinsfile

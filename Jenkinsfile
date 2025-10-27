@@ -17,9 +17,9 @@ pipeline {
     stage('Build and Push Docker Images') {
       steps {
         script {
-          // Define image names
-          def frontendImageName = "${env.DOCKER_HUB_REPO}/recipe-app-frontend"
-          def backendImageName = "${env.DOCKER_HUB_REPO}/recipe-app-backend"
+          // Define full image names
+          def frontendImageName = "${env.DOCKER_HUB_REPO}/${env.FRONTEND_IMAGE}"
+          def backendImageName = "${env.DOCKER_HUB_REPO}/${env.BACKEND_IMAGE}"
           
           // Build images
           def frontendImage = docker.build("${frontendImageName}:${env.BUILD_ID}", "./client")
@@ -28,24 +28,22 @@ pipeline {
           // Scan with Trivy
           sh "trivy image ${frontendImage.id}"
           sh "trivy image ${backendImage.id}"
-          // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${frontendImage.id}"
-          // sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${backendImage.id}"
           
-          // Get and use Docker Hub credentials
+          // Login to Docker Hub and push images
           withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-            // Login to Docker Hub
             sh "echo '$DOCKER_PASS' | docker login -u '$DOCKER_USER' --password-stdin"
             
-            // Push images with build ID tag
+            // Push with build ID tag
             sh "docker push ${frontendImageName}:${env.BUILD_ID}"
             sh "docker push ${backendImageName}:${env.BUILD_ID}"
             
             // Tag and push latest
-            sh "docker tag ${frontendImageName}:${env.BUILD_ID} ${frontendImageName}:latest"
-            sh "docker push ${frontendImageName}:latest"
-            
-            sh "docker tag ${backendImageName}:${env.BUILD_ID} ${backendImageName}:latest"
-            sh "docker push ${backendImageName}:latest"
+            sh """
+              docker tag ${frontendImageName}:${env.BUILD_ID} ${frontendImageName}:latest
+              docker tag ${backendImageName}:${env.BUILD_ID} ${backendImageName}:latest
+              docker push ${frontendImageName}:latest
+              docker push ${backendImageName}:latest
+            """
           }
         }
       }
