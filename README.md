@@ -111,7 +111,7 @@ Jenkins automates the process of building and pushing the API image to Docker Hu
 The API is exposed using a Kubernetes LoadBalancer service. Once deployed, retrie
 
 ```bash
-kubectl get services api-service
+kubectl get svc backend-service
 ```
 
 You can access the API via the LoadBalancer's external IP:
