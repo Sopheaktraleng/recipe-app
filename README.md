@@ -1,139 +1,137 @@
-# MERN Recipe App
-
-## Table of Contents
-
--   [Overview](#overview)
--   [Features](#features)
--   [Technologies Used](#technologies-used)
--   [Getting Started](#getting-started)
--   [Deployment](#deployment) (very interesting)
--   [Docker Deployment](#docker-deployment) (new)
+# Recipe App Deployment Guide
 
 ## Overview
 
-This is a full-stack recipe application built with the MERN (MongoDB, Express.js, React, Node.js) stack.
+The Recipe App provides a complete platform for users to create, manage, and share their favorite recipes. It includes intuitive features for adding, storing, and deleting recipes. Users can include rich details such as ingredients, preparation steps, and images, making it easy to organize and revisit their culinary creations anytime. This repository contains all necessary configurations and scripts to deploy the API to an AWS K8s cluster using Jenkins and Kubernetes.
 
-> A full-stack recipe app built with the MERN stack.
-> ![](https://github.com/korngsamnang/mern-recipe-app/assets/99709883/3bb17d35-4fac-48b9-b901-78bdbe514bc9)
+## Repository Structure
 
-## Features
-
--   **User Authentication**: User authentication system implemented using JWT mechanism.
--   **Recipe Creation**: Users can create and share their favorite recipes, including details such as ingredients,
-    instructions, and images.
--   **Recipe Storage**: Save your favorite recipes to access them later conveniently.
--   **Recipe Deletion**: Users can remove recipes they no longer need.
-
-## Technologies Used
-
--   **Frontend**:
-
-    -   [React.js]: A JavaScript library for building user interfaces.
-    -   [React Query]: A library for managing, caching, and updating server state.
-    -   [Axios]: A promise-based HTTP client for making requests to the server.
-    -   [Tailwind CSS]: A utility-first CSS framework for rapid UI development.
-    -   [React Router DOM]: Enables navigation and routing in the React application.
-    -   [React Hot Toast]: A lightweight toast notification library for React.
-
--   **Backend**:
-    -   [Express.js]: A minimal and flexible Node.js web application framework.
-    -   [MongoDB]: A NoSQL database for storing recipe and user data.
-    -   [Mongoose]: An ODM (Object Data Modeling) library for MongoDB and Node.js, providing a schema-based solution.
-    -   [JSON Web Token (jsonwebtoken)]: Used for creating and verifying web tokens for user authentication.
-    -   [Bcrypt]: A library for hashing passwords.
-
-## Getting Started
-
-1. Clone the repository: `git clone https://github.com/korngsamnang/mern-recipe-app`
-2. Install dependencies: `npm install` in both the client and server directories.
-3. Set up MongoDB and configure the connection string in the server's `.env` file.
-4. Run the development server: `npm run dev` for both the client and server.
-
-## Deployment
-
-For this project, I deployed the backend and frontend separately to different cloud service platforms by just using this
-single repository.
-
--   For the backend, I used [Heroku](https://www.heroku.com/) to deploy the server.
--   For the frontend, I used [Netlify](https://www.netlify.com/) to deploy the client.
-
-The problem was authentication. I used [JWT](https://jwt.io/) (json web token) to implement authentication. So the token
-needs to be
-sent
-from the server to the client, and the client needs to be sent back to the server. So instead of using an authorization
-header or local storage for storing cookies, I use
-an [HTTP-only cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies). The cookie is always sent through an
-HTTP
-connection automatically.
-
-It's perfectly fine if we have the backend and frontend on the same domain, but if not, it's very hard to configure it
-to send cookies from one to another because the HTTP-only cookie design is very secure to
-prevent [XSS attacks](https://en.wikipedia.org/wiki/Cross-site_scripting).
-
-However, it is possible to do that by doing some configuration in both the backend and frontend.
-
-### Steps 1: Configure the backend
-
-We need to properly set up cors along with `credentials` set to `true`.
-
-```javascript
-app.use(
-    cors({
-        origin: process.env.CLIENT_URL,
-        credentials: true,
-    })
-);
+```bash
+└── 📁recipe-app
+    ├── 📁client              # React frontend (Vite + Tailwind)
+    │   ├── Dockerfile
+    │   ├── package.json
+    │   └── 📁src
+    ├── 📁server              # Node.js/Express API
+    │   ├── Dockerfile
+    │   ├── package.json
+    │   └── 📁controllers
+    ├── 📁k8s                 # Kubernetes manifests and kustomize overlays
+    │   ├── api/
+    │   ├── frontend/
+    │   ├── db/
+    │   └── argocd/
+    ├── Jenkinsfile           # CI/CD pipeline definition
+    ├── docker-compose.yml    # Local development stack
+    ├── sonar-project.properties
+    ├── install-sonar-scanner.sh
+    ├── ARGOCD_SETUP.md
+    ├── ARGOCD_QUICK_START.md
+    ├── DEPLOY_K8S.md
+    ├── DEPLOY_ARGOCD.md
+    ├── K8S_RUN_COMMANDS.md
+    └── README.md
 ```
 
-### Steps 2: Configure the frontend
+### Kubernetes Manifests Breakdown
 
-I use Axios, so along with baseURL, we need to add `withCredentials: true`.
+-   `k8s/kustomization.yaml` stitches together the base application, database, and frontend overlays for cluster-wide deployment.
+-   `k8s/docker-registry-secret.yaml` holds the manifest to create the image pull secret referenced by the workloads.
+-   `k8s/api/backend-deployment.yaml` defines the API Deployment (replicas, containers, env vars, probes).
+-   `k8s/api/backend-service.yaml` exposes the API via a ClusterIP service.
+-   `k8s/api/backend-config.yaml` carries non-sensitive configuration such as API base URLs and feature flags.
+-   `k8s/api/backend-secret.yaml` stores sensitive API settings (JWT secrets, database connection strings).
+-   `k8s/api/kustomization.yaml` bundles the API deployment, service, config, and secrets for reuse.
+-   `k8s/frontend/frontend-deployment.yaml` describes the static frontend Deployment and container image settings.
+-   `k8s/frontend/frontend-service.yaml` publishes the frontend through a LoadBalancer.
+-   `k8s/frontend/nginx-configmap.yaml` configures the NGINX reverse proxy for the frontend container.
+-   `k8s/frontend/kustomization.yaml` composes the frontend resources into a deployable unit.
+-   `k8s/db/mongodb-deployment.yaml` provisions MongoDB with persistent storage claims and resource limits.
+-   `k8s/db/mongodb-service.yaml` exposes MongoDB internally for the API to consume.
+-   `k8s/db/mongodb-configmap.yaml` keeps MongoDB configuration such as initialization scripts or small settings.
+-   `k8s/db/mongodb-secret.yaml` provides MongoDB credentials and connection details.
+-   `k8s/db/kustomization.yaml` packages the database manifests into a single overlay.
+-   `k8s/argocd/recipe-app-argocd.yaml` defines the Argo CD Application resource pointing to this repository for GitOps automation.
 
-```javascript
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
-    withCredentials: true,
-});
+## Prerequisites
+
+Before deploying the recipe-app, ensure you have the following:
+
+-   AWS account with permissions to manage EC2 instances, networking, and security groups
+-   Manually provisioned EC2 hosts running your Kubernetes control plane and worker nodes (or a self-managed cluster you can reach)
+-   Jenkins server configured with the credentials/secrets referenced in the pipeline
+-   Docker installed on the Jenkins agent along with authenticated access to Docker Hub for image pushes
+-   kubectl configured on the Jenkins agent (or deployment runner) with access to your cluster kubeconfig
+
+## Deployment Process
+
+### 1. GitHub Webhook for Automatic Deployment
+
+This project is configured to automatically deploy whenever a new commit is pushed to the repository.
+
+Webhook Configuration:
+
+1. In your GitHub repository, go to Settings > Webhooks.
+2. Click Add webhook.
+3. Set the Payload URL to `http://<JENKINS-IP>:8080/github-webhook/`.
+4. Choose application/json as the Content type.
+5. Select Just the push event.
+6. Click Add webhook.
+
+Jenkins Configuration:
+
+1. In Jenkins, install the GitHub Plugin if not already installed.
+2. Go to your Jenkins job, then Configure.
+3. Under Build Triggers, enable Poll SCM and GitHub hook trigger for GITScm polling.
+4. Save the configuration.
+
+With this setup, Jenkins will automatically trigger a build whenever changes are pushed to the GitHub repository.
+
+### 2. Build and Push Docker Image
+
+Jenkins automates the process of building and pushing the API image to Docker Hub.
+
+-   The Jenkinsfile defines the pipeline steps:
+    1. Checkout the latest code
+    2. Generate a unique image tag
+    3. Authenticate with Docker Hub using stored credentials
+    4. Build and push the Docker image
+
+### 3. Deploy to Kubernetes (Self-Managed)
+
+-   The pipeline updates the Kubernetes deployment on your EC2-backed cluster with the new image:
+
+    1. Configure kubectl using the kubeconfig for your self-managed control plane
+    2. Apply Kubernetes secrets (image pull secret, API secrets, database creds)
+    3. Deploy the updated manifests to the cluster
+    4. Trigger a rollout restart or image update on the running workloads
+
+## Accessing the Application
+
+The API is exposed using a Kubernetes LoadBalancer service. Once deployed, retrie
+
+```bash
+kubectl get services api-service
 ```
 
-### Steps 3: Configure cookie settings
+You can access the API via the LoadBalancer's external IP:
 
-When sending a cookie from the backend to the frontend, we have to specify options like this:
-
-```javascript
-res.cookie("jwt", token, {
-    expires: new Date(
-        Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-    ),
-    withCredentials: true,
-    sameSite: "None",
-    httpOnly: true,
-    secure: true,
-});
+```bash
+curl http://<EXTERNAL-IP>/health
 ```
 
-Check out the documentation to learn more about these options.
+## Post-Deployment Verification
 
--   [sameSite: "None"](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite)
--   [httpOnly: true](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#restrict_access_to_cookies)
--   [secure: true](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#restrict_access_to_cookies)
+After deployment, verify the application is running:
 
-That's it.
+-   Check running pods:
 
-Feel free to contribute, report issues, or suggest improvements. Happy cooking!
+```bash
+kubectl get pods
+```
 
-[React.js]: https://react.dev/
-[React Query]: https://tanstack.com/query/latest/
-[Axios]: https://axios-http.com/docs/intro/
-[Tailwind CSS]: https://tailwindcss.com//
-[React Router DOM]: https://reactrouter.com/en/main/
-[React Hot Toast]: https://react-hot-toast.com//
-[Express.js]: https://expressjs.com//
-[MongoDB]: https://www.mongodb.com//
-[Mongoose]: https://mongoosejs.com//
-[JSON Web Token (jsonwebtoken)]: https://jwt.io//
-[Bcrypt]: https://www.npmjs.com/package/bcrypt/
+-   Check logs:
 
-## Docker Deployment
-
-Checkout to the branch: [feature/docker](https://github.com/korngsamnang/mern-recipe-app/tree/feature/docker)
+```bash
+kubectl logs -l app=api
+```

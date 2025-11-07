@@ -32,10 +32,3 @@ rm sonar-scanner-cli-4.8.0.2856-linux.zip
 echo ""
 echo "Verifying installation..."
 sonar-scanner -v
-
-echo ""
-echo "✅ SonarQube Scanner installed successfully!"
-echo ""
-echo "If it still doesn't work, you may need to add to PATH:"
-echo "export PATH=$PATH:/opt/sonar-scanner/bin"
-
